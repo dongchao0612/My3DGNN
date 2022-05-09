@@ -26,7 +26,7 @@ def parse_args():
     '''PARAMETERS'''
     parser = argparse.ArgumentParser('3dgnn')
     # 指定循环次数
-    parser.add_argument('--num_epochs', default=5, type=int, help='Number of epoch')
+    parser.add_argument('--num_epochs', default=10, type=int, help='Number of epoch')
     # 指定批量大小
     parser.add_argument('--batchsize', type=int, default=2, help='batch size in training')
     # 修改default,可以使用训练好的参数
@@ -69,7 +69,8 @@ def main(args):
     # config在该文件夹下有相应的python源代码，Dataset指定了相应的训练集
     # dataset_tr 是训练集
     dataset_tr = Dataset(flip_prob=config.flip_prob, crop_type='Random', crop_size=config.crop_size)
-    dataloader_tr = DataLoader(dataset_tr, batch_size=args.batchsize, shuffle=True, num_workers=config.workers_tr,drop_last=True, pin_memory=True)
+    dataloader_tr = DataLoader(dataset_tr, batch_size=args.batchsize, shuffle=True, num_workers=config.workers_tr,
+                               drop_last=True, pin_memory=True)
 
     cv2.setNumThreads(config.workers_tr)
 
@@ -104,7 +105,8 @@ def main(args):
         lambda1 = lambda epoch: pow((1 - ((epoch - 1) / args.num_epochs)), config.lr_decay)
         scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
     elif config.lr_schedule_type == 'plateau':
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=config.lr_decay,patience=config.lr_patience)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=config.lr_decay,
+                                                               patience=config.lr_patience)
     else:
         print('错误的调度程序')
         exit(1)
@@ -177,16 +179,15 @@ def main(args):
                 # [614400, 14]
                 pred = softmax(pred)
                 # pred_max_val, pred_arg_max都是614400维，分别存储每个像素最大的分类值及分类
-                pred_max_val, pred_arg_max = pred.max(1)# 返回最大值和相应坐标  行级别 每行一个  614400个最大值
+                pred_max_val, pred_arg_max = pred.max(1)  # 返回最大值和相应坐标  行级别 每行一个  614400个最大值
 
                 # pairs为614400维
-                pairs = target.view(-1) * 14 + pred_arg_max.view(-1)  #[ 0]
+                pairs = target.view(-1) * 14 + pred_arg_max.view(-1)  # [ 0]
 
                 # 计算混淆矩阵
                 for i in range(14 ** 2):
                     cumu = pairs.eq(i).float().sum()
                     confusion_matrix[i] += cumu.item()
-
 
             loss_sum /= len(dataloader)
 
@@ -250,13 +251,15 @@ def main(args):
 
             optimizer.zero_grad()
             model.train()
-            #torch.Size([2, 14, 640, 480])
-            output = model(input, gnn_iterations=config.gnn_iterations, k=config.gnn_k, xy=xy, use_gnn=config.use_gnn)
+            # torch.Size([2, 14, 640, 480])
+            output = model(input, gnn_iterations=config.gnn_iterations, k=config.gnn_k, xy=xy,
+                           use_gnn=config.use_gnn)
 
             # config.use_bootstrap_loss=False
             if config.use_bootstrap_loss:
                 loss_per_pixel = loss.forward(log_softmax(output.float()), target)
-                topk, indices = torch.topk(loss_per_pixel.view(output.size()[0], -1),int((config.crop_size ** 2) * config.bootstrap_rate))
+                topk, indices = torch.topk(loss_per_pixel.view(output.size()[0], -1),
+                                           int((config.crop_size ** 2) * config.bootstrap_rate))
                 loss_ = torch.mean(topk)
             else:
                 loss_ = loss.forward(log_softmax(output.float()), target)
@@ -287,20 +290,20 @@ def main(args):
         eval_losses.append(eval_loss)
 
         # 另一种学习率更新的情况
-        if config.lr_schedule_type == 'plateau':
-            scheduler.step(eval_loss)
+        # if config.lr_schedule_type == 'plateau':
+        #   scheduler.step(eval_loss)
 
         print('Learning ...')
-        #logger.info("Epoch{} 当前学习率: {}", epoch, batch_idx, get_current_learning_rates()[0])
-        #print('Epoch{} 当前学习率: {}'.format(epoch, get_current_learning_rates()[0]))
+        logger.info("Epoch{} 当前学习率: {}", epoch, batch_idx, get_current_learning_rates()[0])
+        print('Epoch{} 当前学习率: {}'.format(epoch, get_current_learning_rates()[0]))
 
-        #logger.info("Epoch{} GNN学习率: %s", epoch, batch_idx, get_current_learning_rates()[1])
-        #print('Epoch{} GNN学习率: {}'.format(epoch, get_current_learning_rates()[1]))
+        logger.info("Epoch{} GNN学习率: %s", epoch, batch_idx, get_current_learning_rates()[1])
+        print('Epoch{} GNN学习率: {}'.format(epoch, get_current_learning_rates()[1]))
 
         logger.info("Epoch{} ,Batch:{} 评价损失: %s", epoch, batch_idx, eval_loss)
         print('Epoch{} 评价损失: {}'.format(epoch, eval_loss))
 
-        logger.info("Epoch{} Batch:{} Class IoU:", epoch, batch_idx)
+        logger.info("Epoch{} Batch:{} 类别 IoU:", epoch, batch_idx)
         print('Epoch{} Class IoU:'.format(epoch))
 
         for cl in range(14):
@@ -312,7 +315,6 @@ def main(args):
 
         logger.info("Epoch{} Batch:{}  Confusion matrix:", epoch, batch_idx)
         logger.info(confusion_matrix)
-
 
     # 所有循环都结束了，此时在日志文件进行记录
     logger.info("完成训练!")
@@ -332,7 +334,6 @@ def main(args):
         logger.info("%+10s: %-10s" % (idx_to_label[cl], class_iou[cl]))
     # 所有类的平均交并比（IoU）
     logger.info("平均 IOU: %s", np.mean(class_iou[1:]))
-
 
 
 if __name__ == '__main__':

@@ -193,6 +193,9 @@ class EnetGnn(nn.Module):
 
     # (x - y)^2 = x^2 - 2*x*y + y^2
     def get_knn_indices(self, batch_mat, k):  # KNN
+        #计算两个tensor的矩阵乘法，torch.bmm(a,b),tensor a 的size为(b,h,w),tensor b的size为(b,w,m) 也就是说两个tensor的第一维是相等的，
+        # 然后第一个数组的第三维和第二个数组的第二维度要求一样，对于剩下的则不做要求，输出维度 （b,h,m）
+
         r = torch.bmm(batch_mat, batch_mat.permute(0, 2, 1))
         N = r.size()[0]
         HW = r.size()[1]

@@ -20,7 +20,7 @@ class Dataset(Dataset):
         data_file = 'nyu_depth_v2_labeled.mat'
 
         # 读取mat文件
-        #print("Reading mat file...")
+        # print("Reading mat file...")
         f = h5py.File(data_path + data_file, "r")  # 记得更改
 
         # as it turns out, trying to pickle this is a shit idea :D
@@ -31,9 +31,11 @@ class Dataset(Dataset):
         # names namesToIds
         # rawDepthFilenames rawDepths
         # rawRgbFilenames sceneTypes scenes
-
+        # print("rgb_images_fr.shape:",f['images'].shape)#(1449, 3, 640, 480)
         rgb_images_fr = np.transpose(f['images'], [0, 2, 3, 1]).astype(np.float32)
         label_images_fr = np.array(f['labels'])
+        #print("rgb_images_fr.shape:", rgb_images_fr.shape)  # (1449, 640, 480, 3)
+        #print("label_images_fr.shape:", label_images_fr.shape)  # (1449, 640, 480)
 
         # 关闭文件
         f.close()
@@ -62,6 +64,7 @@ class Dataset(Dataset):
 
         # 维度 (640, 480)
         label = self.label_images[idx].astype(np.float32)
+        #print("label.shape",label.shape)#(640, 480)
         label[label >= 14] = 0
 
         # 构造和rgb维度相同的零矩阵,因为有0：2,所以维度为 (640, 480, 2)
@@ -100,9 +103,9 @@ class Dataset(Dataset):
 
 if __name__ == '__main__':
     data = Dataset(flip_prob=0.5, crop_type='Random', crop_size=0)
-    print("data.rgb_images.shape:", data.rgb_images.shape,"data.label_images.shape:",
+    print("data.rgb_images.shape:", data.rgb_images.shape, "data.label_images.shape:",
           data.label_images.shape)  # (1449, 640, 480, 3) (1449, 640, 480)
     print("rgb_hha:", data[0][0].shape)  # (640, 480, 6)
     print("label:", data[0][1].shape)  # (640, 480)
     print("xy:", data[0][2].shape)  # (640, 480, 2)
-    print(type(data[0][2]))  # <class 'numpy.ndarray'>
+
